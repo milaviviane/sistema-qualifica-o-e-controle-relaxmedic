@@ -15,7 +15,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema de Qualidade – Qualificação de Fornecedores e Controle de Documentos</title>
-<script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=xpjOJ5c9LtNetc2fxQvN0-aYvYf79pqrM5HlB-HPAJ0mO15M8zdqBcNEXPOF47zDr6HJ5JgeDEJDVdVS-azNx-dgy1g8K5wv1e7OWmY7l0J0OYVsni0UmwImcvYe3ZzZlRNB0SXjEKuDNYZx1owGJD-q27SuZcgjXU-38Ts213cV03DB6OYSvMYM4vwuoC8p_4IeZdpq01E3PNNIDBfjnWzX4km-_lBA5voZd9H9GyV0PXQpOuAkTcj1BwvEqeOS3_hqOXgp4PFxCrHXUQr_jcUTP4nhKydPnCJU89qJ3ccEtQpXFTe9Ck5gDWiuh2qvdamaxEV1MNqkmio9RjIxW-YgSn1-vybDuY9tPW1PEYDPijn0_6iSRQDpVP6csWjBO-NQSuBwazU-Iu453fpveMsAzKM6A-osAbZh4VYQoPzLtiHUmKZr7QUTqRQHwP5x" charset="UTF-8"></script><script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=SxyKDmv0X-WB5w-tWOirzxSLjMWaMq1aDaEOkumZRoknxSfJUnC4vzk11O2cYiy3P7nPIISpTylzzwVTxhRKiQBBJBDoxgHSoYuYK5k1Os2Tsd0lly_Br9YhOUQckPmbFi4NIBMnR2n4B4Ey_ydQxF9mPMxORs-iNKMNvkKxnlcPk1P24Yb8kK6P-TeBq4a2REWopIslp-MNUKndS18PNzKjMHeVbd5jEs10TGWAKdoc8Zega7WyY7jHjadtQkyXG8VTfqgzdCzSgzVzj2t4Sw" charset="UTF-8"></script><style>
+<style>
 :root{
  --bg:#071426;--card:#0d1b30;--text:#f4f7ff;--muted:#9eafd0;--line:#203653;
  --primary:#1677f2;--primary-dark:#0d5dcc;--green:#37c77a;--yellow:#f2bd45;
@@ -1159,24 +1159,72 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
 
   const email = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value;
-  const error = document.getElementById("loginError");
+  const errorBox = document.getElementById("loginError");
+  const button = this.querySelector('button[type="submit"]');
 
-  error.style.display = "none";
-  error.textContent = "";
+  errorBox.style.display = "none";
+  errorBox.textContent = "";
 
-  const { data: loginData, error: loginError } =
-    await supabaseClient.auth.signInWithPassword({
-      email: email,
-      password: password
-    });
-
-  if (loginError) {
-    error.textContent = loginError.message;
-    error.style.display = "block";
+  if (!window.supabase || !supabaseClient) {
+    errorBox.textContent = "O serviço de autenticação não foi carregado. Recarregue a página e tente novamente.";
+    errorBox.style.display = "block";
     return;
   }
 
-  document.getElementById("loginScreen").style.display = "none";
+  button.disabled = true;
+  button.textContent = "Entrando...";
+
+  try {
+    const { data: loginData, error: loginError } =
+      await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
+    if (loginError) {
+      console.error("Supabase login error:", loginError);
+
+      errorBox.textContent =
+        loginError.message ||
+        "Não foi possível realizar o login.";
+      errorBox.style.display = "block";
+      return;
+    }
+
+    if (!loginData || !loginData.session || !loginData.user) {
+      console.error("Supabase login sem sessão:", loginData);
+
+      errorBox.textContent =
+        "O Supabase não retornou uma sessão de login.";
+      errorBox.style.display = "block";
+      return;
+    }
+
+    console.info("Login realizado com sucesso:", loginData.user.email);
+    document.getElementById("loginScreen").style.display = "none";
+
+  } catch (networkError) {
+    console.error("Supabase login - erro de rede:", networkError);
+
+    const message = String(networkError?.message || networkError || "");
+
+    if (
+      message.toLowerCase().includes("failed to fetch") ||
+      message.toLowerCase().includes("network") ||
+      message.toLowerCase().includes("fetch")
+    ) {
+      errorBox.textContent =
+        "Não foi possível conectar ao serviço de autenticação do Supabase. Verifique a conexão e tente novamente.";
+    } else {
+      errorBox.textContent =
+        "Não foi possível concluir o login. Veja o Console do navegador para mais detalhes.";
+    }
+
+    errorBox.style.display = "block";
+  } finally {
+    button.disabled = false;
+    button.textContent = "Entrar";
+  }
 });
 </script>
 </body>
