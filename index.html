@@ -2,16 +2,6 @@
 <html lang="pt-BR">
 <head>
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script>
-  const SUPABASE_URL = 'https://snoeulvuwdxhrfmmjwpf.supabase.co';
-  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_zZ7d2Z8DPx6fZlj0_DGuGg_b1JlgWdv';
-
-  const supabaseClient = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY
-  );
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema de Qualidade – Qualificação de Fornecedores e Controle de Documentos</title>
@@ -1153,78 +1143,132 @@ function init(){
 function renderAll(){renderDashboard();renderSuppliers();renderProducts();renderQualification();renderDocuments()}
 init();
 </script>
- <script>
-document.getElementById("loginForm").addEventListener("submit", async function(e) {
-  e.preventDefault();
 
-  const email = document.getElementById("loginEmail").value.trim();
-  const password = document.getElementById("loginPassword").value;
-  const errorBox = document.getElementById("loginError");
-  const button = this.querySelector('button[type="submit"]');
+<script>
+/* ============================================================
+   AUTENTICAÇÃO SUPABASE — mesma estrutura do Sistema NC
+   ============================================================ */
+const SUPABASE_URL = 'https://snoeulvuwdxhrfmmjwpf.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_zZ7d2Z8DPx6fZlj0_DGuGg_b1JlgWdv';
 
-  errorBox.style.display = "none";
-  errorBox.textContent = "";
+let sb = null;
+let sessionUser = null;
 
-  if (!window.supabase || !supabaseClient) {
-    errorBox.textContent = "O serviço de autenticação não foi carregado. Recarregue a página e tente novamente.";
-    errorBox.style.display = "block";
+function supabaseConfigured() {
+  return !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
+}
+
+function showLoginError(message) {
+  const error = document.getElementById("loginError");
+  if (!error) return;
+  error.textContent = message || "";
+  error.style.display = message ? "block" : "none";
+}
+
+function setLoginBusy(busy) {
+  const button = document.querySelector('#loginForm button[type="submit"]');
+  if (!button) return;
+  button.disabled = busy;
+  button.textContent = busy ? "Entrando..." : "Entrar";
+}
+
+function setAuthOverlay(show) {
+  const screen = document.getElementById("loginScreen");
+  if (screen) screen.style.display = show ? "flex" : "none";
+}
+
+async function signIn() {
+  if (!supabaseConfigured()) {
+    showLoginError("A conexão com o Supabase não foi configurada.");
     return;
   }
 
-  button.disabled = true;
-  button.textContent = "Entrando...";
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+
+  if (!email || !password) {
+    showLoginError("Informe o e-mail e a senha.");
+    return;
+  }
+
+  showLoginError("");
+  setLoginBusy(true);
 
   try {
-    const { data: loginData, error: loginError } =
-      await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
+    const { data, error } = await sb.auth.signInWithPassword({
+      email,
+      password
+    });
 
-    if (loginError) {
-      console.error("Supabase login error:", loginError);
-
-      errorBox.textContent =
-        loginError.message ||
-        "Não foi possível realizar o login.";
-      errorBox.style.display = "block";
+    if (error) {
+      console.error("Supabase login error:", error);
+      showLoginError(error.message || "E-mail ou senha incorretos.");
       return;
     }
 
-    if (!loginData || !loginData.session || !loginData.user) {
-      console.error("Supabase login sem sessão:", loginData);
-
-      errorBox.textContent =
-        "O Supabase não retornou uma sessão de login.";
-      errorBox.style.display = "block";
+    if (!data || !data.session || !data.user) {
+      console.error("Supabase login sem sessão:", data);
+      showLoginError("O Supabase não retornou uma sessão de login.");
       return;
     }
 
-    console.info("Login realizado com sucesso:", loginData.user.email);
-    document.getElementById("loginScreen").style.display = "none";
-
-  } catch (networkError) {
-    console.error("Supabase login - erro de rede:", networkError);
-
-    const message = String(networkError?.message || networkError || "");
-
-    if (
-      message.toLowerCase().includes("failed to fetch") ||
-      message.toLowerCase().includes("network") ||
-      message.toLowerCase().includes("fetch")
-    ) {
-      errorBox.textContent =
-        "Não foi possível conectar ao serviço de autenticação do Supabase. Verifique a conexão e tente novamente.";
+    sessionUser = data.user;
+    console.info("Login realizado com sucesso:", sessionUser.email);
+    setAuthOverlay(false);
+  } catch (error) {
+    console.error("Erro de conexão com o Supabase:", error);
+    const msg = String(error?.message || error || "");
+    if (/failed to fetch|network|fetch|dns|name_not_resolved/i.test(msg)) {
+      showLoginError("Não foi possível conectar ao serviço de autenticação do Supabase. Tente novamente.");
     } else {
-      errorBox.textContent =
-        "Não foi possível concluir o login. Veja o Console do navegador para mais detalhes.";
+      showLoginError(msg || "Não foi possível concluir o login.");
     }
-
-    errorBox.style.display = "block";
   } finally {
-    button.disabled = false;
-    button.textContent = "Entrar";
+    setLoginBusy(false);
   }
+}
+
+async function signOut() {
+  if (sb) await sb.auth.signOut();
+  sessionUser = null;
+  setAuthOverlay(true);
+}
+
+async function initSupabaseAuth() {
+  if (!supabaseConfigured()) {
+    showLoginError("A conexão com o Supabase não foi configurada.");
+    setAuthOverlay(true);
+    return;
+  }
+
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const { data, error } = await sb.auth.getSession();
+  if (error) {
+    console.error("Supabase getSession error:", error);
+    setAuthOverlay(true);
+  } else if (data?.session) {
+    sessionUser = data.session.user;
+    setAuthOverlay(false);
+  } else {
+    setAuthOverlay(true);
+  }
+
+  sb.auth.onAuthStateChange((_event, session) => {
+    sessionUser = session?.user || null;
+    if (sessionUser) setAuthOverlay(false);
+  });
+}
+
+document.getElementById("loginForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+  signIn();
+});
+
+initSupabaseAuth().catch(error => {
+  console.error("Erro ao iniciar autenticação:", error);
+  showLoginError("Erro ao iniciar a autenticação do sistema.");
+  setAuthOverlay(true);
 });
 </script>
 </body>
