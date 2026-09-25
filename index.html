@@ -1171,7 +1171,7 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
     });
 
   if (loginError) {
-    error.textContent = "E-mail ou senha incorretos.";
+    error.textContent = loginError.message;
     error.style.display = "block";
     return;
   }
