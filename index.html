@@ -126,6 +126,134 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
 </style>
 </head>
 <body>
+ <!-- TELA DE LOGIN -->
+<div id="loginScreen" style="
+  position:fixed;
+  inset:0;
+  z-index:99999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#f4f6fa;
+  font-family:Inter,Segoe UI,Arial,sans-serif;
+">
+  <div style="
+    width:380px;
+    max-width:90%;
+    background:#fff;
+    border-radius:18px;
+    padding:38px;
+    box-shadow:0 12px 40px rgba(0,0,0,.12);
+    text-align:center;
+  ">
+    
+    <div style="
+      font-size:22px;
+      font-weight:700;
+      color:#182033;
+      margin-bottom:8px;
+    ">
+      Sistema de Qualidade
+    </div>
+
+    <div style="
+      font-size:14px;
+      color:#687386;
+      margin-bottom:28px;
+    ">
+      Qualificação de Fornecedores e Controle de Documentos
+    </div>
+
+    <form id="loginForm">
+
+      <div style="text-align:left;margin-bottom:15px;">
+        <label style="
+          display:block;
+          font-size:13px;
+          font-weight:600;
+          color:#182033;
+          margin-bottom:7px;
+        ">
+          E-mail
+        </label>
+
+        <input
+          id="loginEmail"
+          type="email"
+          placeholder="Digite seu e-mail"
+          required
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:12px 14px;
+            border:1px solid #d9dee8;
+            border-radius:10px;
+            font-size:14px;
+            outline:none;
+          "
+        >
+      </div>
+
+      <div style="text-align:left;margin-bottom:10px;">
+        <label style="
+          display:block;
+          font-size:13px;
+          font-weight:600;
+          color:#182033;
+          margin-bottom:7px;
+        ">
+          Senha
+        </label>
+
+        <input
+          id="loginPassword"
+          type="password"
+          placeholder="Digite sua senha"
+          required
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:12px 14px;
+            border:1px solid #d9dee8;
+            border-radius:10px;
+            font-size:14px;
+            outline:none;
+          "
+        >
+      </div>
+
+      <div
+        id="loginError"
+        style="
+          display:none;
+          color:#c62828;
+          font-size:13px;
+          margin:12px 0;
+        "
+      ></div>
+
+      <button
+        type="submit"
+        style="
+          width:100%;
+          margin-top:12px;
+          padding:13px;
+          border:0;
+          border-radius:10px;
+          background:#167f52;
+          color:#fff;
+          font-size:14px;
+          font-weight:700;
+          cursor:pointer;
+        "
+      >
+        Entrar
+      </button>
+
+    </form>
+
+  </div>
+</div>
 <div class="app">
 <aside class="sidebar">
   <div class="logo">
@@ -1024,6 +1152,32 @@ function init(){
 }
 function renderAll(){renderDashboard();renderSuppliers();renderProducts();renderQualification();renderDocuments()}
 init();
+</script>
+ <script>
+document.getElementById("loginForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const error = document.getElementById("loginError");
+
+  error.style.display = "none";
+  error.textContent = "";
+
+  const { data: loginData, error: loginError } =
+    await supabaseClient.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+
+  if (loginError) {
+    error.textContent = "E-mail ou senha incorretos.";
+    error.style.display = "block";
+    return;
+  }
+
+  document.getElementById("loginScreen").style.display = "none";
+});
 </script>
 </body>
 </html>
