@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+  const SUPABASE_URL = 'https://snoeulvuwdxhrfmmjwpf.supabase.co';
+  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_zZ7d2Z8DPx6fZlj0_DGuGg_b1JlgWdv';
+
+  const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema de Qualidade – Qualificação de Fornecedores e Controle de Documentos</title>
